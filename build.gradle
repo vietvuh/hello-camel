@@ -10,23 +10,42 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.apache.camel.quarkus:camel-quarkus-direct'
-    implementation 'org.apache.camel.quarkus:camel-quarkus-kafka'
     implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
     implementation enforcedPlatform("${quarkusPlatformGroupId}:quarkus-camel-bom:${quarkusPlatformVersion}")
     implementation 'org.apache.camel.quarkus:camel-quarkus-jackson'
     implementation 'org.apache.camel.quarkus:camel-quarkus-core'
     implementation 'org.apache.camel.quarkus:camel-quarkus-rest'
     implementation 'org.apache.camel.quarkus:camel-quarkus-timer'
+    implementation 'org.apache.camel.quarkus:camel-quarkus-direct'
+    implementation 'org.apache.camel.quarkus:camel-quarkus-kafka'
+    implementation 'org.apache.camel.quarkus:camel-quarkus-debezium-postgres'
+    implementation 'org.apache.camel.quarkus:camel-quarkus-jsonpath'
     implementation 'io.quarkus:quarkus-hibernate-validator'
     implementation 'io.quarkus:quarkus-config-yaml'
     implementation 'io.quarkus:quarkus-arc'
+    // Force compatible versions - Debezium 3.x needs Kafka Connect 3.x
+    implementation 'org.apache.kafka:connect-api:3.9.1'
+    implementation 'org.apache.kafka:connect-runtime:3.9.1'
+    implementation 'org.apache.kafka:kafka-clients:3.9.1'
+
     testImplementation 'io.quarkus:quarkus-junit5'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
+}
+
+// Force Kafka versions to prevent upgrades
+configurations.all {
+    resolutionStrategy {
+        force 'org.apache.kafka:connect-api:3.9.1'
+        force 'org.apache.kafka:connect-runtime:3.9.1'
+        force 'org.apache.kafka:kafka-clients:3.9.1'
+        force 'org.apache.kafka:connect-json:3.9.1'
+        force 'org.apache.kafka:connect-transforms:3.9.1'
+        force 'org.apache.kafka:connect-file:3.9.1'
+    }
 }
 
 group = 'vvu.centrauthz'

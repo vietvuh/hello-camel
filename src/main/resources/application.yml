@@ -12,3 +12,20 @@ camel:
       auto-commit-interval-ms: 5000
       session-timeout-ms: 30000
       heartbeat-interval-ms: 10000
+    debezium-postgres:
+      topicPrefix: application
+      offsetStorage: org.apache.kafka.connect.storage.FileOffsetBackingStore
+      offsetStorageFileName: "C:\\Workspace\\Camel\\application-cdc\\tmp\\offset.dat"
+      databaseHostname: localhost
+      databaseDbname: Application
+      databaseUser: ${DB_USERNAME}
+      databasePassword: ${DB_PASSWORD}
+      databasePort: 5432
+      pluginName: pgoutput
+      schemaIncludeList: public
+      tableIncludeList: public.application
+      offsetFlushIntervalMs: 10000
+quarkus:
+  datasource:
+    devservices:
+      enabled: false
