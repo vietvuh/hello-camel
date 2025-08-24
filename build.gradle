@@ -16,6 +16,7 @@ dependencies {
     implementation 'org.apache.camel.quarkus:camel-quarkus-core'
     implementation 'org.apache.camel.quarkus:camel-quarkus-rest'
     implementation 'org.apache.camel.quarkus:camel-quarkus-timer'
+    implementation 'org.apache.camel.quarkus:camel-quarkus-bean-validator'
     implementation 'io.quarkus:quarkus-hibernate-validator'
     implementation 'io.quarkus:quarkus-config-yaml'
     implementation 'io.quarkus:quarkus-arc'
