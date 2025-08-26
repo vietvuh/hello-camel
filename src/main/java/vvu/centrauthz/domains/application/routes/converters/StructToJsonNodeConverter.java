@@ -58,7 +58,7 @@ public class StructToJsonNodeConverter implements TypeConverters {
         }
 
         return switch (schema.type()) {
-            case STRING -> objectMapper.valueToTree(value.toString());
+            case STRING -> JsonTools.toJsonOrString(value.toString());
             case INT8, INT16, INT32 -> objectMapper.valueToTree(((Number) value).intValue());
             case INT64 -> objectMapper.valueToTree(((Number) value).longValue());
             case FLOAT32 -> objectMapper.valueToTree(((Number) value).floatValue());

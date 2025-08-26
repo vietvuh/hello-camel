@@ -5,16 +5,21 @@ import jakarta.enterprise.context.ApplicationScoped;
 import lombok.extern.slf4j.Slf4j;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.kafka.connect.data.Struct;
-import vvu.centrauthz.utilities.JsonTools;
-
+import vvu.centrauthz.models.CdcEvent;
+import vvu.centrauthz.models.CdcEventType;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
 @ApplicationScoped
 @Slf4j
 public class DebeziumRoute extends RouteBuilder {
+    private final String brokers;
+
+    public DebeziumRoute(@ConfigProperty(name = "camel.component.kafka.brokers") String brokers) {
+        this.brokers = brokers;
+    }
 
     private String extractTable(Exchange exchange) {
         //
@@ -32,18 +37,12 @@ public class DebeziumRoute extends RouteBuilder {
     private String extractKey(Exchange exchange) {
 
         try {
-
-            exchange.getIn().getHeaders().forEach((key, value) -> log.info("Header: {} = {}", key, value));
-
             var tableName = extractTable(exchange);
             var messageKey = exchange.getIn().getHeader("CamelDebeziumKey");
 
             if (messageKey instanceof Struct keyStruct) {
-                log.info("keyStruct {}", keyStruct);
-
                 var keyName = Objects.equals(tableName, "application") ? "application_key" : "id";
                 Object primaryKeyId = keyStruct.get(keyName);
-
                 Optional.ofNullable(primaryKeyId).ifPresent(id ->
                         exchange.getIn().setHeader("id", id));
 
@@ -56,52 +55,47 @@ public class DebeziumRoute extends RouteBuilder {
         return null;
     }
 
+    private CdcEventType extractHeader(Exchange exchange) {
+        Object metadata = exchange.getIn().getHeader("CamelDebeziumOperation");
+        return switch (metadata.toString()) {
+            case "c" -> CdcEventType.CREATED;
+            case "u" -> CdcEventType.UPDATED;
+            case "d" -> CdcEventType.DELETED;
+            default -> CdcEventType.UNKNOWN;
+        };
+    }
+
+    private CdcEvent extract(Exchange exchange) {
+        var kind =exchange.getIn().getHeader("CamelDebeziumIdentifier");
+        var builder = CdcEvent.builder();
+        builder.event(extractHeader(exchange));
+        builder.kind(Objects.nonNull(kind) ? kind.toString() : "Unknown");
+        builder.after(exchange.getIn().getBody(JsonNode.class));
+        builder.key(extractKey(exchange));
+
+        return builder.build();
+    }
+
+    private void process(Exchange exchange) {
+        var e = extract(exchange);
+        exchange.getIn().setBody( e.toJson());
+    }
+
     @Override
     public void configure() throws Exception {
 
-        from("debezium-postgres:local-application")
+        from("debezium-postgres:local-application?additional-properties.bootstrap.servers=" + brokers)
                 .routeId("application-cdc-route")
                 .log("Received CDC event: ${body}")
                 .log("Operation: ${header.CamelDebeziumOperation}")
-                .log("Table: ${header.CamelDebeziumSourceTable}")
+                .log("Table: ${header.CamelDebeziumIdentifier}")
                 .choice()
-                .when(header("CamelDebeziumOperation").isEqualTo("c"))
-                .log("Processing CREATE operation")
-                .convertBodyTo(JsonNode.class)
-                .process(exchange -> {
-                    JsonNode jsonBody = exchange.getIn().getBody(JsonNode.class);
-                    log.info("Create operation - JSON: {}", jsonBody);
-                    // You can access specific fields like: jsonBody.get("fieldName")
-                })
-                .when(header("CamelDebeziumOperation").isEqualTo("u"))
-                .log("Processing UPDATE operation")
-                .convertBodyTo(JsonNode.class)
-                .process(exchange -> {
-                    JsonNode jsonBody = exchange.getIn().getBody(JsonNode.class);
-                    log.info("Update operation - JSON: {}", jsonBody);
-                    // Access before/after values: jsonBody.get("before"), jsonBody.get("after")
-                })
-                .when(header("CamelDebeziumOperation").isEqualTo("d"))
-                .log("Processing DELETE operation")
-                .convertBodyTo(JsonNode.class)
-                .process(exchange -> {
-                    JsonNode jsonBody = exchange.getIn().getBody(JsonNode.class);
-                    var key = extractKey(exchange);
-
-                    log.info("Delete operation Key {} - JSON: {}", key, jsonBody);
-
-                    if (jsonBody == null) {
-                        return;
-                    }
-
-                    // Extract key information for deletion
-                    JsonNode beforeData = jsonBody.get("before");
-                    if (beforeData != null) {
-                        log.info("Deleted record data: {}", beforeData);
-                    }
-                })
-                .log("Deleted record ID: ${header.id}")
-                .otherwise()
+                    .when(header("CamelDebeziumOperation").in("c", "u", "d"))
+                        .convertBodyTo(JsonNode.class)
+                        .process(this::process)
+                        .log("Event ${body}")
+                        .to("direct:produce-cdc-events")
+                    .otherwise()
                 .log("Unknown operation: ${header.CamelDebeziumOperation}");
     }
 }

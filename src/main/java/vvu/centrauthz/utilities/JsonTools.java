@@ -1,5 +1,6 @@
 package vvu.centrauthz.utilities;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.function.Supplier;
@@ -56,5 +57,13 @@ public class JsonTools {
 
     public static JsonNode from(String v) {
         return jsonContext(() -> mapper().readTree(v));
+    }
+
+    public static JsonNode toJsonOrString(String v) {
+        try {
+            return mapper().readTree(v);
+        } catch (JsonProcessingException e) {
+            return mapper().valueToTree(v);
+        }
     }
 }

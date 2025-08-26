@@ -14,8 +14,8 @@ camel:
       heartbeat-interval-ms: 10000
     debezium-postgres:
       topicPrefix: application
-      offsetStorage: org.apache.kafka.connect.storage.FileOffsetBackingStore
-      offsetStorageFileName: "C:\\Workspace\\Camel\\application-cdc\\tmp\\offset.dat"
+      offsetStorage: org.apache.kafka.connect.storage.KafkaOffsetBackingStore
+      offsetStorageTopic: topic.cdc.offset.store.application
       databaseHostname: localhost
       databaseDbname: Application
       databaseUser: ${DB_USERNAME}
