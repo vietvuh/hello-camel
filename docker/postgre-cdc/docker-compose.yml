@@ -1,0 +1,30 @@
+services:
+  postgres:
+    image: postgres:17.5-alpine
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Zaq12wsx
+      # Optional: Set timezone
+      TZ: UTC
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data:/var/lib/postgresql/data
+      # Mount the custom postgresql.conf file
+      - ./postgresql.conf:/var/lib/postgresql/data/postgresql.conf
+      # Optional: Mount pg_hba.conf for authentication settings
+      - ./pg_hba.conf:/var/lib/postgresql/data/pg_hba.conf
+    # Use custom command to ensure our config is used
+    command: >
+      postgres
+      -c config_file=/var/lib/postgresql/data/postgresql.conf
+      -c hba_file=/var/lib/postgresql/data/pg_hba.conf
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
