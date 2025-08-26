@@ -21,10 +21,11 @@ public class KafkaRoute extends RouteBuilder  {
             .routeId("produce-cdc-events-route")
             .log("Producing CDC event to Kafka: ${body}")
             .marshal().json()
-            .to("kafka:topic.ec.cdc.events.applications");
+            .to("kafka:topic.cdc.events.applications");
 
-        from("kafka:topic.test?groupId=test-consumer-group")
-            .routeId("consume-cdc-users-route")
+        from("kafka:topic.cdc.events.applications")
+            .routeId("consume-cdc-applications-route")
             .log("Consumed CDC user event from Kafka: ${body}");
+
     }
 }
