@@ -1,2 +1,14 @@
 greeting:
   message: "hello"
+camel:
+  context:
+    name: cdc-camel-context
+  component:
+    kafka:
+      brokers: kafka-native:9094
+      group-id: my-consumer-group
+      auto-offset-reset: earliest
+      auto-commit-enable: true
+      auto-commit-interval-ms: 5000
+      session-timeout-ms: 30000
+      heartbeat-interval-ms: 10000
